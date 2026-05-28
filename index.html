@@ -63,12 +63,15 @@
   .emoji-cell { font-size: 24px; width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .1s; }
   .emoji-cell:active { background: #FBEAF0; }
   .emoji-close { display: block; width: 100%; margin-top: 8px; padding: 13px; border-radius: 12px; border: none; background: #f1efe8; color: #2c2c2a; font-size: 15px; font-family: inherit; cursor: pointer; font-weight: 500; flex-shrink: 0; }
-  .emoji-custom-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
-  .emoji-custom-input { flex: 1; font-size: 20px; padding: 8px 12px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; outline: none; font-family: inherit; min-width: 0; }
+  .emoji-add-section { border-top: 0.5px solid #e8e4e0; margin-top: 10px; padding-top: 10px; flex-shrink: 0; }
+  .emoji-add-title { font-size: 11px; color: #b4b2a9; font-weight: 600; letter-spacing: .06em; margin-bottom: 8px; }
+  .emoji-add-row { display: flex; gap: 6px; align-items: center; }
+  .emoji-custom-input { width: 52px; font-size: 20px; padding: 8px; border-radius: 10px; border: 1px solid #d3d1c7; background: #fff; outline: none; font-family: inherit; text-align: center; flex-shrink: 0; }
   .emoji-custom-input:focus { border-color: #D4537E; box-shadow: 0 0 0 3px #FBEAF0; }
-  .emoji-custom-add { padding: 8px 16px; border-radius: 12px; border: none; background: #D4537E; color: #fff; font-size: 14px; font-family: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .emoji-cat-select { flex: 1; font-size: 13px; padding: 8px 10px; border-radius: 10px; border: 1px solid #d3d1c7; background: #fff; color: #2c2c2a; outline: none; font-family: inherit; -webkit-appearance: none; appearance: none; min-width: 0; }
+  .emoji-cat-select:focus { border-color: #D4537E; }
+  .emoji-custom-add { padding: 8px 14px; border-radius: 10px; border: none; background: #D4537E; color: #fff; font-size: 13px; font-family: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
   .emoji-custom-add:active { background: #993556; }
-  .emoji-custom-section { margin-top: 6px; }
   .emoji-custom-section .emoji-cat-label { color: #D4537E; }
 
   .footer { text-align: center; padding: 1.5rem 1rem 0; font-size: 13px; color: #888780; }
@@ -134,9 +137,13 @@
     <div class="emoji-scroll">
       <div id="emoji-categories"></div>
     </div>
-    <div class="emoji-custom-row">
-      <input class="emoji-custom-input" id="emoji-custom-input" type="text" placeholder="이모지 직접 입력 (예: 🦄)" maxlength="8" />
-      <button class="emoji-custom-add" id="emoji-custom-add">+ 추가</button>
+    <div class="emoji-add-section">
+      <div class="emoji-add-title">이모지 직접 추가</div>
+      <div class="emoji-add-row">
+        <input class="emoji-custom-input" id="emoji-custom-input" type="text" placeholder="이모지 입력 (예: 🦄)" maxlength="8" />
+        <select class="emoji-cat-select" id="emoji-cat-select"></select>
+        <button class="emoji-custom-add" id="emoji-custom-add">추가</button>
+      </div>
     </div>
     <button class="emoji-close" id="emoji-close">닫기</button>
   </div>
@@ -168,33 +175,13 @@ const EMOJI_CATEGORIES = [
 ];
 
 // ── 이모지 피커 빌드 ──
-const catContainer = document.getElementById('emoji-categories');
-EMOJI_CATEGORIES.forEach(cat => {
-  const wrap = document.createElement('div');
-  wrap.className = 'emoji-category';
-  const label = document.createElement('div');
-  label.className = 'emoji-cat-label';
-  label.textContent = cat.label;
-  const grid = document.createElement('div');
-  grid.className = 'emoji-grid';
-  cat.emojis.forEach(em => {
-    const btn = document.createElement('button');
-    btn.className = 'emoji-cell';
-    btn.textContent = em;
-    btn.onclick = () => onEmojiPick(em);
-    grid.appendChild(btn);
-  });
-  wrap.appendChild(label);
-  wrap.appendChild(grid);
-  catContainer.appendChild(wrap);
-});
 
-// ── 커스텀 이모지 저장 (localStorage) ──
-const CUSTOM_KEY = 'bucket_custom_emojis';
-let customEmojis = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
+// ── 커스텀 이모지 저장 (카테고리별, localStorage) ──
+const CUSTOM_KEY = 'bucket_custom_emojis_v2';
+let customByCategory = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '{}');
 
 function saveCustomEmojis() {
-  localStorage.setItem(CUSTOM_KEY, JSON.stringify(customEmojis));
+  localStorage.setItem(CUSTOM_KEY, JSON.stringify(customByCategory));
 }
 
 function getFirstEmoji(str) {
@@ -202,45 +189,68 @@ function getFirstEmoji(str) {
   return seg.length > 0 ? seg[0].segment : null;
 }
 
-// 커스텀 섹션 렌더
-const customSectionEl = document.createElement('div');
-customSectionEl.className = 'emoji-category emoji-custom-section';
-catContainer.prepend(customSectionEl);
+// 카테고리 select 채우기
+const catSelect = document.getElementById('emoji-cat-select');
+EMOJI_CATEGORIES.forEach((cat, i) => {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = cat.label;
+  catSelect.appendChild(opt);
+});
 
-function renderCustomSection() {
-  if (customEmojis.length === 0) {
-    customSectionEl.innerHTML = '';
-    return;
-  }
-  customSectionEl.innerHTML = '';
+// 카테고리 그리드 엘리먼트 맵 (나중에 추가할 때 접근용)
+const catGridEls = [];
+const catContainer = document.getElementById('emoji-categories');
+
+// 카테고리별 그리드 빌드 (커스텀 포함)
+function buildEmojiGrid(cat, customList, idx) {
+  const wrap = document.createElement('div');
+  wrap.className = 'emoji-category';
   const label = document.createElement('div');
   label.className = 'emoji-cat-label';
-  label.textContent = '⭐ 내가 추가한 이모지';
+  label.textContent = cat.label;
   const grid = document.createElement('div');
   grid.className = 'emoji-grid';
-  customEmojis.forEach(em => {
+  grid.id = 'emoji-grid-' + idx;
+
+  const allEmojis = [...cat.emojis, ...(customList || [])];
+  allEmojis.forEach(em => {
     const btn = document.createElement('button');
     btn.className = 'emoji-cell';
     btn.textContent = em;
     btn.onclick = () => onEmojiPick(em);
     grid.appendChild(btn);
   });
-  customSectionEl.appendChild(label);
-  customSectionEl.appendChild(grid);
+
+  wrap.appendChild(label);
+  wrap.appendChild(grid);
+  catContainer.appendChild(wrap);
+  catGridEls.push(grid);
 }
-renderCustomSection();
+
+EMOJI_CATEGORIES.forEach((cat, i) => {
+  buildEmojiGrid(cat, customByCategory[i], i);
+});
 
 // 커스텀 추가 버튼
 document.getElementById('emoji-custom-add').onclick = () => {
   const inp = document.getElementById('emoji-custom-input');
   const val = inp.value.trim();
   const em = getFirstEmoji(val);
-  if (!em) { inp.style.borderColor = '#D4537E'; return; }
+  if (!em) { inp.style.borderColor = '#D4537E'; setTimeout(()=>inp.style.borderColor='',1000); return; }
   inp.style.borderColor = '';
-  if (!customEmojis.includes(em)) {
-    customEmojis.unshift(em);
+
+  const catIdx = parseInt(catSelect.value);
+  if (!customByCategory[catIdx]) customByCategory[catIdx] = [];
+  if (!customByCategory[catIdx].includes(em) && !EMOJI_CATEGORIES[catIdx].emojis.includes(em)) {
+    customByCategory[catIdx].push(em);
     saveCustomEmojis();
-    renderCustomSection();
+    // 해당 카테고리 그리드에 버튼 추가
+    const btn = document.createElement('button');
+    btn.className = 'emoji-cell';
+    btn.textContent = em;
+    btn.onclick = () => onEmojiPick(em);
+    catGridEls[catIdx].appendChild(btn);
   }
   onEmojiPick(em);
   inp.value = '';
