@@ -202,6 +202,40 @@ EMOJI_CATEGORIES.forEach((cat, i) => {
 const catGridEls = [];
 const catContainer = document.getElementById('emoji-categories');
 
+function makeEmojiBtn(em, catIdx, isCustom) {
+  const btn = document.createElement('button');
+  btn.className = 'emoji-cell';
+  btn.textContent = em;
+  btn.onclick = () => onEmojiPick(em);
+
+  let pressTimer = null;
+  const startPress = () => {
+    pressTimer = setTimeout(() => {
+      if (confirm(em + ' 이모지를 삭제할까요?')) {
+        if (isCustom) {
+          customByCategory[catIdx] = (customByCategory[catIdx] || []).filter(x => x !== em);
+        } else {
+          const delKey = 'del_' + catIdx;
+          if (!customByCategory[delKey]) customByCategory[delKey] = [];
+          if (!customByCategory[delKey].includes(em)) customByCategory[delKey].push(em);
+        }
+        saveCustomEmojis();
+        btn.remove();
+      }
+    }, 600);
+  };
+  const cancelPress = () => clearTimeout(pressTimer);
+  btn.addEventListener('mousedown', startPress);
+  btn.addEventListener('touchstart', startPress, {passive:true});
+  btn.addEventListener('mouseup', cancelPress);
+  btn.addEventListener('mouseleave', cancelPress);
+  btn.addEventListener('touchend', cancelPress);
+  btn.addEventListener('touchcancel', cancelPress);
+  btn.title = '꾹 누르면 삭제';
+
+  return btn;
+}
+
 // 카테고리별 그리드 빌드 (커스텀 포함)
 function buildEmojiGrid(cat, customList, idx) {
   const wrap = document.createElement('div');
@@ -213,14 +247,9 @@ function buildEmojiGrid(cat, customList, idx) {
   grid.className = 'emoji-grid';
   grid.id = 'emoji-grid-' + idx;
 
-  const allEmojis = [...cat.emojis, ...(customList || [])];
-  allEmojis.forEach(em => {
-    const btn = document.createElement('button');
-    btn.className = 'emoji-cell';
-    btn.textContent = em;
-    btn.onclick = () => onEmojiPick(em);
-    grid.appendChild(btn);
-  });
+  const deletedDefault = customByCategory['del_' + idx] || [];
+  cat.emojis.filter(em => !deletedDefault.includes(em)).forEach(em => grid.appendChild(makeEmojiBtn(em, idx, false)));
+  (customList || []).forEach(em => grid.appendChild(makeEmojiBtn(em, idx, true)));
 
   wrap.appendChild(label);
   wrap.appendChild(grid);
@@ -245,12 +274,7 @@ document.getElementById('emoji-custom-add').onclick = () => {
   if (!customByCategory[catIdx].includes(em) && !EMOJI_CATEGORIES[catIdx].emojis.includes(em)) {
     customByCategory[catIdx].push(em);
     saveCustomEmojis();
-    // 해당 카테고리 그리드에 버튼 추가
-    const btn = document.createElement('button');
-    btn.className = 'emoji-cell';
-    btn.textContent = em;
-    btn.onclick = () => onEmojiPick(em);
-    catGridEls[catIdx].appendChild(btn);
+    catGridEls[catIdx].appendChild(makeEmojiBtn(em, catIdx, true));
   }
   onEmojiPick(em);
   inp.value = '';
