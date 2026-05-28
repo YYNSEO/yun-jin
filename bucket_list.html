@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🎀 윤서 &amp; 진영이의 버킷리스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', -apple-system, sans-serif; background: #fff9fb; min-height: 100vh; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 0 3rem; }
+
+  .header { text-align: center; padding: 2rem 1rem 1rem; }
+  .title { font-size: 22px; font-weight: 600; color: #2c2c2a; line-height: 1.3; }
+  .subtitle { font-size: 13px; color: #888780; margin-top: 6px; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 1rem; margin-bottom: .9rem; }
+  .stat { background: #fff; border-radius: 12px; padding: 12px 6px; text-align: center; border: 0.5px solid #e8e4e0; }
+  .stat-num { font-size: 22px; font-weight: 600; color: #2c2c2a; }
+  .stat-label { font-size: 11px; color: #888780; margin-top: 2px; }
+
+  .pbar-wrap { background: #f1efe8; border-radius: 999px; height: 6px; margin: 0 1rem 1.4rem; }
+  .pbar-fill { background: #D4537E; height: 6px; border-radius: 999px; transition: width .4s ease; }
+
+  .sec-label { font-size: 11px; font-weight: 600; color: #888780; letter-spacing: .06em; text-transform: uppercase; padding: 0 1rem 8px; }
+  .list { display: flex; flex-direction: column; gap: 7px; padding: 0 1rem; }
+
+  .item { display: flex; align-items: center; gap: 10px; padding: 13px 12px; border-radius: 14px; border: 0.5px solid #e8e4e0; background: #fff; transition: background .15s; }
+  .item.done { background: #FBEAF0; border-color: #F4C0D1; }
+  .item-num { font-size: 11px; color: #b4b2a9; min-width: 14px; font-weight: 500; flex-shrink: 0; }
+  .item-icon { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; cursor: pointer; border-radius: 6px; transition: background .1s; -webkit-tap-highlight-color: transparent; }
+  .item-icon:active { background: #f1efe8; }
+  .item-icon-hint { position: relative; }
+  .item-text { flex: 1; font-size: 14px; color: #2c2c2a; line-height: 1.45; word-break: keep-all; }
+  .item.done .item-text { color: #72243E; }
+  .item-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .check-btn { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #d3d1c7; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #b4b2a9; -webkit-tap-highlight-color: transparent; transition: background .15s, border-color .15s; }
+  .item.done .check-btn { background: #D4537E; border-color: #D4537E; color: #fff; }
+  .del-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #b4b2a9; -webkit-tap-highlight-color: transparent; }
+  .del-btn:active { background: #f1efe8; }
+
+  .gap { height: 1rem; }
+  .add-area { padding: 1rem 1rem 0; }
+  .add-row { display: flex; gap: 8px; align-items: center; }
+  .emoji-pick-btn { font-size: 22px; width: 48px; height: 48px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; -webkit-tap-highlight-color: transparent; }
+  .emoji-pick-btn:active { background: #f1efe8; }
+  .add-input { flex: 1; font-size: 15px; padding: 12px 14px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; color: #2c2c2a; outline: none; min-width: 0; -webkit-appearance: none; font-family: inherit; height: 48px; }
+  .add-input:focus { border-color: #D4537E; box-shadow: 0 0 0 3px #FBEAF0; }
+  .add-btn { font-size: 15px; padding: 0 16px; border-radius: 12px; border: none; background: #D4537E; color: #fff; cursor: pointer; font-weight: 600; white-space: nowrap; flex-shrink: 0; font-family: inherit; height: 48px; }
+  .add-btn:active { background: #993556; }
+  .add-btn:disabled { background: #e0b0be; cursor: default; }
+
+  /* Emoji picker overlay */
+  .emoji-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.35); align-items: flex-end; justify-content: center; }
+  .emoji-overlay.open { display: flex; }
+  .emoji-sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 1rem; width: 100%; max-width: 480px; max-height: 65vh; display: flex; flex-direction: column; }
+  .emoji-sheet-title { font-size: 13px; color: #888780; font-weight: 600; letter-spacing: .05em; text-align: center; margin-bottom: 10px; flex-shrink: 0; }
+  .emoji-scroll { overflow-y: auto; flex: 1; }
+  .emoji-category { margin-bottom: 14px; }
+  .emoji-cat-label { font-size: 11px; color: #b4b2a9; font-weight: 600; letter-spacing: .06em; margin-bottom: 6px; padding: 0 2px; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+  .emoji-cell { font-size: 24px; width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 10px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .1s; }
+  .emoji-cell:active { background: #FBEAF0; }
+  .emoji-close { display: block; width: 100%; margin-top: 8px; padding: 13px; border-radius: 12px; border: none; background: #f1efe8; color: #2c2c2a; font-size: 15px; font-family: inherit; cursor: pointer; font-weight: 500; flex-shrink: 0; }
+  .emoji-custom-row { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
+  .emoji-custom-input { flex: 1; font-size: 20px; padding: 8px 12px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; outline: none; font-family: inherit; min-width: 0; }
+  .emoji-custom-input:focus { border-color: #D4537E; box-shadow: 0 0 0 3px #FBEAF0; }
+  .emoji-custom-add { padding: 8px 16px; border-radius: 12px; border: none; background: #D4537E; color: #fff; font-size: 14px; font-family: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  .emoji-custom-add:active { background: #993556; }
+  .emoji-custom-section { margin-top: 6px; }
+  .emoji-custom-section .emoji-cat-label { color: #D4537E; }
+
+  .footer { text-align: center; padding: 1.5rem 1rem 0; font-size: 13px; color: #888780; }
+  .heart { color: #D4537E; }
+
+  .status-bar { text-align: center; padding: .5rem 1rem 0; font-size: 12px; }
+  .status-bar span { display: inline-block; padding: 3px 10px; border-radius: 99px; }
+  .status-connecting { background: #fff3cd; color: #856404; }
+  .status-online { background: #d4edda; color: #155724; }
+  .status-error { background: #f8d7da; color: #721c24; }
+
+  .done-section { display: none; }
+  .todo-section { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title">🎀 윤서 &amp; 진영이의 버킷리스트</div>
+    <div class="subtitle">둘이서 도장 깨는 중 ♡</div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-connecting" id="status-msg">🔄 연결 중...</span>
+  </div>
+
+  <div class="stats" style="margin-top:.8rem">
+    <div class="stat"><div class="stat-num" id="cnt-done">0</div><div class="stat-label">완료 ✅</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-todo">0</div><div class="stat-label">남은 것 🌸</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-total">0</div><div class="stat-label">전체</div></div>
+  </div>
+
+  <div class="pbar-wrap"><div class="pbar-fill" id="pbar" style="width:0%"></div></div>
+
+  <div id="done-sec" class="done-section">
+    <div class="sec-label">✅ 완료한 것들</div>
+    <div class="list" id="list-done"></div>
+  </div>
+  <div class="gap"></div>
+  <div id="todo-sec" class="todo-section">
+    <div class="sec-label">🌸 아직 남은 것들</div>
+    <div class="list" id="list-todo"></div>
+  </div>
+
+  <div class="add-area">
+    <div class="add-row">
+      <button class="emoji-pick-btn" id="emoji-pick-btn" aria-label="이모지 선택">⭐</button>
+      <input class="add-input" id="new-item" type="text" placeholder="새 항목 추가하기..." maxlength="60" />
+      <button class="add-btn" id="add-btn">+ 추가</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span id="footer-txt"></span><br>
+    <span style="font-size:11px;margin-top:5px;display:block">앞으로도 많은 추억 만들어요 🎀</span>
+  </div>
+</div>
+
+<!-- Emoji picker overlay -->
+<div class="emoji-overlay" id="emoji-overlay">
+  <div class="emoji-sheet">
+    <div class="emoji-sheet-title" id="emoji-sheet-title">이모지 선택</div>
+    <div class="emoji-scroll">
+      <div id="emoji-categories"></div>
+    </div>
+    <div class="emoji-custom-row">
+      <input class="emoji-custom-input" id="emoji-custom-input" type="text" placeholder="이모지 직접 입력 (예: 🦄)" maxlength="8" />
+      <button class="emoji-custom-add" id="emoji-custom-add">+ 추가</button>
+    </div>
+    <button class="emoji-close" id="emoji-close">닫기</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, update, remove, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEmSvFk4V-GRRjNDlnWQwub_PwJJilmps",
+  authDomain: "yunseo-jinyoung.firebaseapp.com",
+  databaseURL: "https://yunseo-jinyoung-default-rtdb.firebaseio.com",
+  projectId: "yunseo-jinyoung",
+  storageBucket: "yunseo-jinyoung.firebasestorage.app",
+  messagingSenderId: "102611566707",
+  appId: "1:102611566707:web:ef34dc9986a533a5692a06",
+  measurementId: "G-8DE5V9HE7R"
+};
+
+const EMOJI_CATEGORIES = [
+  { label: '여행 & 액티비티', emojis: ['✈️','🚗','🚌','🛳️','🚂','🪂','🛷','⛺','🏕️','🗺️','🧭','🏖️','🏔️','🌄','🎡','🎢','🎠','🎪','🚁','🛺','🚴','🧗','🤿','🏄'] },
+  { label: '음식 & 음료', emojis: ['🍜','🍺','🧺','🍶','🥗','🍣','🍕','🍔','🧁','🍰','🎂','🍩','☕','🧋','🍷','🥂','🍱','🥘','🍛','🥩','🍗','🍖','🌮','🍿','🧆','🥐','🍳','🥚'] },
+  { label: '자연 & 계절', emojis: ['🌸','🌹','🌻','🍁','❄️','⛄','🌈','🌙','⭐','🌟','💫','🌊','🌺','🌷','🍀','🌿','🎋','🎑','🌴','🌵','🍄','🌾','🦋','🐚'] },
+  { label: '사랑 & 감정', emojis: ['💕','💖','💗','💝','🥰','😍','🥳','😊','🤩','💌','💍','👫','🎀','🎁','🎉','🎊','🎈','🤗','😘','🫶','💞','💓','💟','🩷'] },
+  { label: '스포츠 & 취미', emojis: ['⚾','🎸','✏️','📸','🎨','🎭','🎬','🎤','🎵','🎶','📚','🎮','♟️','🏊','🎯','🎳','🏸','⚽','🏀','🎾','🎱','🎻','🥁','🎹'] },
+  { label: '동물', emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐙','🦄','🐧','🐦','🦆','🐠','🐬','🦋','🐝','🐾'] },
+  { label: '기타', emojis: ['👻','🩺','🛍️','💄','👗','🧸','🪆','🔮','🧿','🎐','🏮','🕯️','🧧','🎟️','🌠','🎇','🎆','🪅','🏆','🥇','🎖️','🗝️','🔑','💎'] },
+];
+
+// ── 이모지 피커 빌드 ──
+const catContainer = document.getElementById('emoji-categories');
+EMOJI_CATEGORIES.forEach(cat => {
+  const wrap = document.createElement('div');
+  wrap.className = 'emoji-category';
+  const label = document.createElement('div');
+  label.className = 'emoji-cat-label';
+  label.textContent = cat.label;
+  const grid = document.createElement('div');
+  grid.className = 'emoji-grid';
+  cat.emojis.forEach(em => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-cell';
+    btn.textContent = em;
+    btn.onclick = () => onEmojiPick(em);
+    grid.appendChild(btn);
+  });
+  wrap.appendChild(label);
+  wrap.appendChild(grid);
+  catContainer.appendChild(wrap);
+});
+
+// ── 커스텀 이모지 저장 (localStorage) ──
+const CUSTOM_KEY = 'bucket_custom_emojis';
+let customEmojis = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
+
+function saveCustomEmojis() {
+  localStorage.setItem(CUSTOM_KEY, JSON.stringify(customEmojis));
+}
+
+function getFirstEmoji(str) {
+  const seg = [...(new Intl.Segmenter('ko', {granularity:'grapheme'})).segment(str)];
+  return seg.length > 0 ? seg[0].segment : null;
+}
+
+// 커스텀 섹션 렌더
+const customSectionEl = document.createElement('div');
+customSectionEl.className = 'emoji-category emoji-custom-section';
+catContainer.prepend(customSectionEl);
+
+function renderCustomSection() {
+  if (customEmojis.length === 0) {
+    customSectionEl.innerHTML = '';
+    return;
+  }
+  customSectionEl.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'emoji-cat-label';
+  label.textContent = '⭐ 내가 추가한 이모지';
+  const grid = document.createElement('div');
+  grid.className = 'emoji-grid';
+  customEmojis.forEach(em => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-cell';
+    btn.textContent = em;
+    btn.onclick = () => onEmojiPick(em);
+    grid.appendChild(btn);
+  });
+  customSectionEl.appendChild(label);
+  customSectionEl.appendChild(grid);
+}
+renderCustomSection();
+
+// 커스텀 추가 버튼
+document.getElementById('emoji-custom-add').onclick = () => {
+  const inp = document.getElementById('emoji-custom-input');
+  const val = inp.value.trim();
+  const em = getFirstEmoji(val);
+  if (!em) { inp.style.borderColor = '#D4537E'; return; }
+  inp.style.borderColor = '';
+  if (!customEmojis.includes(em)) {
+    customEmojis.unshift(em);
+    saveCustomEmojis();
+    renderCustomSection();
+  }
+  onEmojiPick(em);
+  inp.value = '';
+};
+document.getElementById('emoji-custom-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('emoji-custom-add').click();
+});
+
+// ── 피커 상태 ──
+const overlay = document.getElementById('emoji-overlay');
+let pickerMode = 'new'; // 'new' | 'edit'
+let editingItemId = null;
+let selectedEmoji = '⭐';
+const pickBtn = document.getElementById('emoji-pick-btn');
+
+function openPicker(mode, itemId = null) {
+  pickerMode = mode;
+  editingItemId = itemId;
+  document.getElementById('emoji-sheet-title').textContent =
+    mode === 'edit' ? '이모지 변경' : '이모지 선택';
+  document.getElementById('emoji-custom-input').value = '';
+  overlay.classList.add('open');
+}
+
+function onEmojiPick(em) {
+  overlay.classList.remove('open');
+  if (pickerMode === 'new') {
+    selectedEmoji = em;
+    pickBtn.textContent = em;
+  } else if (pickerMode === 'edit' && editingItemId) {
+    update(ref(db, 'bucketlist/items/' + editingItemId), { emoji: em });
+  }
+}
+
+document.getElementById('emoji-close').onclick = () => overlay.classList.remove('open');
+overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+pickBtn.onclick = () => openPicker('new');
+
+// ── Firebase ──
+const DEFAULT_ITEMS = [
+  {id:'1', text:'자동차극장 — 아자자야채치킨 포장', done:false, emoji:'🚗', order:1},
+  {id:'2', text:'패러글라이딩 (단양)', done:false, emoji:'🪂', order:2},
+  {id:'3', text:'루지 (통영)', done:false, emoji:'🛷', order:3},
+  {id:'4', text:'찜질방 가서 오빠 머리에 계란 깨기', done:false, emoji:'🥚', order:4},
+  {id:'5', text:'현대 아울렛 쇼핑 후 장어덮밥 푸파', done:true, emoji:'🛍️', order:5},
+  {id:'6', text:'야구장 (한화이글스)', done:true, emoji:'⚾', order:6},
+  {id:'7', text:'벚꽃 보러가기 (보은 보청천)', done:true, emoji:'🌸', order:7},
+  {id:'8', text:'경비행기 체험', done:false, emoji:'✈️', order:8},
+  {id:'9', text:'무계획 랜덤 여행 + 요리 대회', done:false, emoji:'🗺️', order:9},
+  {id:'10', text:'놀이공원 겸 귀신의 집', done:false, emoji:'👻', order:10},
+  {id:'11', text:'한강공원 치맥', done:false, emoji:'🍺', order:11},
+  {id:'12', text:'문지동 공원에서 돗자리 펴고 점심 먹기', done:true, emoji:'🧺', order:12},
+  {id:'13', text:'태화장 멘보샤 먹기', done:false, emoji:'🍜', order:13},
+  {id:'14', text:'캠핑장 가기', done:false, emoji:'⛺', order:14},
+  {id:'15', text:'알레르기 검사 (비용은 윤서 부담)', done:false, emoji:'🩺', order:15},
+  {id:'16', text:'제철 음식 먹으러 다니기', done:false, emoji:'🥗', order:16},
+  {id:'17', text:'시내버스 타고 데이트 가기', done:false, emoji:'🚌', order:17},
+  {id:'18', text:'캐리커쳐 그리기', done:false, emoji:'✏️', order:18},
+  {id:'19', text:'윤서 퍼스널 소주 찾기 + 지뇽이 소주 브랜드 찾기', done:true, emoji:'🍶', order:19},
+];
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const itemsRef = ref(db, 'bucketlist/items');
+
+function setStatus(type, msg) {
+  const el = document.getElementById('status-msg');
+  el.className = 'status-' + type;
+  el.textContent = msg;
+}
+
+async function initData() {
+  const snap = await get(itemsRef);
+  if (!snap.exists()) {
+    const obj = {};
+    DEFAULT_ITEMS.forEach(item => { obj[item.id] = item; });
+    await set(itemsRef, obj);
+  }
+}
+
+function subscribe() {
+  onValue(itemsRef, (snap) => {
+    setStatus('online', '✅ 실시간 연결됨');
+    const data = snap.val() || {};
+    const items = Object.values(data).sort((a, b) => (a.order||0) - (b.order||0));
+    render(items);
+  }, (err) => {
+    setStatus('error', '❌ 연결 오류 — ' + err.message);
+  });
+}
+
+function render(items) {
+  const done = items.filter(i => i.done);
+  const todo = items.filter(i => !i.done);
+  const total = items.length;
+  const pct = total > 0 ? Math.round(done.length / total * 100) : 0;
+
+  document.getElementById('cnt-done').textContent = done.length;
+  document.getElementById('cnt-todo').textContent = todo.length;
+  document.getElementById('cnt-total').textContent = total;
+  document.getElementById('pbar').style.width = pct + '%';
+  document.getElementById('footer-txt').innerHTML =
+    '<span class="heart">♡</span> ' + total + '개 중 ' + done.length + '개 완료 · ' + pct + '% 달성 <span class="heart">♡</span>';
+
+  const ld = document.getElementById('list-done');
+  const lt = document.getElementById('list-todo');
+  ld.innerHTML = ''; lt.innerHTML = '';
+  done.forEach((item, i) => ld.appendChild(makeItem(item, i + 1)));
+  todo.forEach((item, i) => lt.appendChild(makeItem(item, i + 1)));
+
+  document.getElementById('done-sec').style.display = done.length ? 'block' : 'none';
+  document.getElementById('todo-sec').style.display = todo.length ? 'block' : 'none';
+}
+
+function makeItem(item, idx) {
+  const d = document.createElement('div');
+  d.className = 'item' + (item.done ? ' done' : '');
+
+  const num = document.createElement('span');
+  num.className = 'item-num'; num.textContent = idx;
+
+  const ic = document.createElement('span');
+  ic.className = 'item-icon';
+  ic.textContent = item.emoji || '⭐';
+  ic.title = '이모지 변경';
+  ic.onclick = () => openPicker('edit', item.id);
+
+  const tx = document.createElement('span');
+  tx.className = 'item-text'; tx.textContent = item.text;
+
+  const acts = document.createElement('div');
+  acts.className = 'item-actions';
+
+  const cb = document.createElement('button');
+  cb.className = 'check-btn';
+  cb.textContent = item.done ? '✓' : '○';
+  cb.setAttribute('aria-label', item.done ? '미완료로 변경' : '완료로 표시');
+  cb.onclick = () => update(ref(db, 'bucketlist/items/' + item.id), { done: !item.done });
+
+  const dl = document.createElement('button');
+  dl.className = 'del-btn'; dl.textContent = '✕';
+  dl.setAttribute('aria-label', '삭제');
+  dl.onclick = () => {
+    if (confirm('"' + item.text + '"\n삭제할까요?')) {
+      remove(ref(db, 'bucketlist/items/' + item.id));
+    }
+  };
+
+  acts.append(cb, dl);
+  d.append(num, ic, tx, acts);
+  return d;
+}
+
+async function addItem() {
+  const inp = document.getElementById('new-item');
+  const t = inp.value.trim();
+  if (!t) return;
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+
+  const snap = await get(itemsRef);
+  const data = snap.val() || {};
+  const maxOrder = Object.values(data).reduce((m, i) => Math.max(m, i.order || 0), 0);
+  const newId = Date.now().toString();
+  await set(ref(db, 'bucketlist/items/' + newId), {
+    id: newId, text: t, done: false, emoji: selectedEmoji, order: maxOrder + 1
+  });
+  inp.value = '';
+  selectedEmoji = '⭐';
+  pickBtn.textContent = '⭐';
+  btn.disabled = false;
+  inp.focus();
+}
+
+document.getElementById('add-btn').onclick = addItem;
+document.getElementById('new-item').addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+
+setStatus('connecting', '🔄 연결 중...');
+initData().then(subscribe).catch(err => setStatus('error', '❌ ' + err.message));
+</script>
+</body>
+</html>
